@@ -652,9 +652,11 @@
         min-height: 100vh;
       }
 
-      .map-pane {
-        height: 68vh;
-        min-height: 500px;
+      @media (max-width: 700px) {
+        .map-pane {
+          height: 58vh;
+          min-height: 420px;
+        }
       }
 
       .list-pane {
