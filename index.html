@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oregon Field Guide Archive Map</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+  />
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --panel: rgba(255, 255, 255, 0.96);
+      --panel-border: #d9d9d9;
+      --text: #111111;
+      --muted: #5c5c5c;
+      --accent: #2f5d50;
+      --accent-dark: #24473d;
+      --accent-soft: #eef4f1;
+      --white: #ffffff;
+      --shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .app {
+      display: flex;
+      height: 100vh;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .map-pane {
+      position: relative;
+      flex: 1 1 65%;
+      min-width: 0;
+      overflow: hidden;
+      background: #e9eef0;
+    }
+
+    #map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .list-pane {
+      width: 390px;
+      max-width: 40vw;
+      min-width: 320px;
+      border-left: 1px solid var(--panel-border);
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .list-toggle {
+      width: 100%;
+      appearance: none;
+      border: none;
+      background: #ffffff;
+      text-align: left;
+      padding: 18px 18px 12px;
+      border-bottom: 1px solid var(--panel-border);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .list-toggle-text {
+      min-width: 0;
+    }
+
+    .list-kicker {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .list-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 28px;
+      line-height: 1.05;
+      margin: 0 0 8px;
+    }
+
+    .list-subtitle {
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .list-toggle-arrow {
+      color: var(--muted);
+      font-size: 14px;
+      padding-top: 4px;
+    }
+
+    .story-list-wrap {
+      flex: 1;
+      min-height: 0;
+      display: block;
+    }
+
+    .story-list {
+      height: 100%;
+      overflow-y: auto;
+      padding: 8px 12px 18px;
+      box-sizing: border-box;
+    }
+
+    .story-card {
+      background: #ffffff;
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 12px 12px 11px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    }
+
+    .story-card:hover {
+      border-color: rgba(47,93,80,0.35);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+      transform: translateY(-1px);
+    }
+
+    .story-card.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(47,93,80,0.08);
+    }
+
+    .story-card-kicker {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .story-card-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 20px;
+      line-height: 1.15;
+      margin: 0 0 7px;
+    }
+
+    .story-card-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .story-card-desc {
+      font-size: 13px;
+      line-height: 1.45;
+      color: #333333;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .story-card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .watch-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      background: #ffffff;
+      color: var(--accent);
+      border: 1px solid rgba(47,93,80,0.28);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    }
+
+    .watch-btn:hover {
+      background: var(--accent);
+      color: var(--white);
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .watch-btn::after {
+      content: "→";
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .empty-state {
+      padding: 22px 16px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      background: #ffffff;
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+    }
+
+    .empty-state strong {
+      display: block;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--text);
+      font-size: 22px;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+
+    .map-ui {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 1000;
+      max-width: 490px;
+      width: min(490px, calc(100% - 32px));
+      pointer-events: none;
+    }
+
+    .map-header {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 16px 18px 14px;
+      box-shadow: var(--shadow);
+      pointer-events: auto;
+    }
+
+    .header-toggle {
+      width: 100%;
+      appearance: none;
+      border: none;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .header-toggle-text {
+      min-width: 0;
+    }
+
+    .header-toggle-arrow {
+      color: var(--muted);
+      font-size: 14px;
+      padding-top: 2px;
+    }
+
+    .map-kicker {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .map-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 30px;
+      line-height: 1.05;
+      margin: 0 0 8px;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .map-title.compact {
+      margin: 0;
+    }
+
+    .map-header-body {
+      margin-top: 10px;
+    }
+
+    .map-subtitle {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--muted);
+      margin: 0 0 12px;
+    }
+
+    .map-stats {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .filter-footer {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--panel-border);
+    }
+
+    .reset-view-btn {
+      appearance: none;
+      border: 1px solid var(--panel-border);
+      background: #ffffff;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .reset-view-btn:hover {
+      background: var(--accent-soft);
+      border-color: rgba(47,93,80,0.25);
+    }
+
+    .filter-shell {
+      margin-top: 10px;
+      pointer-events: auto;
+    }
+
+    .filter-shell.open {
+      filter: drop-shadow(0 8px 24px rgba(0,0,0,0.12));
+    }
+
+    .filter-toggle {
+      width: 100%;
+      appearance: none;
+      border: 1px solid var(--panel-border);
+      background: var(--panel);
+      border-radius: 10px;
+      padding: 11px 13px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .filter-shell.open .filter-toggle {
+      border-radius: 10px 10px 0 0;
+      box-shadow: none;
+    }
+
+    .filter-toggle:hover {
+      background: #ffffff;
+    }
+
+    .filter-toggle-arrow {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .filter-bar {
+      margin-top: 0;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+      padding: 10px;
+      box-shadow: none;
+      display: none;
+    }
+
+    .filter-bar.open {
+      display: block;
+    }
+
+    .filter-label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .search-wrap {
+      margin-bottom: 10px;
+    }
+
+    .search-input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid var(--panel-border);
+      background: #ffffff;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 11px 13px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .search-input:focus {
+      border-color: #888;
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.08);
+    }
+
+    .search-input::placeholder {
+      color: #8a8a8a;
+    }
+
+    .year-filters {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .year-filter-group {
+      flex: 1;
+    }
+
+    .year-filter-label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .year-select {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid var(--panel-border);
+      background: #ffffff;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .watchable-toggle-wrap {
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .watchable-toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .watchable-toggle-label input {
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .filter-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .filter-btn {
+      appearance: none;
+      border: 1px solid var(--panel-border);
+      background: #ffffff;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .filter-btn:hover {
+      background: var(--accent-soft);
+      border-color: rgba(47,93,80,0.25);
+    }
+
+    .filter-btn.active {
+      background: var(--accent);
+      color: var(--white);
+      border-color: var(--accent);
+    }
+
+    .leaflet-control-zoom a {
+      color: var(--text);
+    }
+
+    .story-pin {
+      background: transparent;
+      border: none;
+    }
+
+    .story-pin svg {
+      overflow: visible;
+      filter: drop-shadow(0 3px 5px rgba(0,0,0,0.2));
+      transition: transform 0.15s ease;
+    }
+
+    .story-pin:hover svg {
+      transform: translateY(-2px) scale(1.04);
+    }
+
+    .custom-cluster-icon {
+      background: transparent;
+      border: none;
+    }
+
+    .cluster-circle {
+      border-radius: 50%;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 700;
+      text-align: center;
+      border: 3px solid rgba(255,255,255,0.95);
+      box-shadow: 0 6px 14px rgba(47,93,80,0.22);
+    }
+
+    .leaflet-popup-content-wrapper {
+      border-radius: 10px;
+      padding: 2px;
+      background: rgba(255,255,255,0.98);
+      box-shadow: 0 14px 28px rgba(0,0,0,0.18);
+    }
+
+    .leaflet-popup-tip {
+      background: rgba(255,255,255,0.98);
+    }
+
+    .leaflet-popup-content {
+      margin: 14px 16px;
+      min-width: 230px;
+      max-width: 310px;
+    }
+
+    .popup-kicker {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .popup-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 21px;
+      line-height: 1.15;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .popup-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .popup-desc {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #333333;
+      margin-bottom: 10px;
+    }
+
+    .popup-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    @media (min-width: 701px) {
+      .header-toggle,
+      .list-toggle {
+        cursor: default;
+        pointer-events: none;
+      }
+
+      .header-toggle-arrow,
+      .list-toggle-arrow {
+        display: none;
+      }
+
+      .map-header-body,
+      .story-list-wrap {
+        display: block !important;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      .map-pane {
+        height: 64vh;
+        min-height: 460px;
+      }
+
+      .list-pane {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        border-left: none;
+        border-top: 1px solid var(--panel-border);
+      }
+    }
+
+    @media (max-width: 700px) {
+      .app {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      .map-pane {
+        height: 68vh;
+        min-height: 500px;
+      }
+
+      .list-pane {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        border-left: none;
+        border-top: 1px solid var(--panel-border);
+      }
+
+      .map-ui {
+        top: 10px;
+        left: 10px;
+        width: calc(100% - 20px);
+        max-width: none;
+      }
+
+      .map-header,
+      .filter-toggle,
+      .filter-bar {
+        border-radius: 8px;
+      }
+
+      .map-header {
+        padding: 12px 14px;
+      }
+
+      .map-title {
+        font-size: 20px;
+        line-height: 1.05;
+        margin-bottom: 6px;
+      }
+
+      .map-subtitle {
+        font-size: 12px;
+        line-height: 1.4;
+        margin: 0 0 8px;
+      }
+
+      .map-stats {
+        font-size: 11px;
+      }
+
+      .map-header-body {
+        display: none;
+        margin-top: 8px;
+      }
+
+      .map-header.open .map-header-body {
+        display: block;
+      }
+
+      .filter-toggle {
+        padding: 10px 12px;
+        font-size: 12px;
+      }
+
+      .filter-bar {
+        padding: 10px;
+      }
+
+      .filter-btn {
+        font-size: 12px;
+        padding: 7px 10px;
+      }
+
+      .year-filters {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .list-toggle {
+        padding: 14px 14px 10px;
+      }
+
+      .list-title {
+        font-size: 22px;
+      }
+
+      .story-list-wrap {
+        display: none;
+      }
+
+      .list-pane.open .story-list-wrap {
+        display: block;
+      }
+
+      .story-list {
+        max-height: 52vh;
+        overflow-y: auto;
+        padding: 8px 10px 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app">
+    <div class="map-pane">
+      <div class="map-ui">
+        <div class="map-header" id="map-header">
+          <button class="header-toggle" id="header-toggle" type="button" aria-expanded="false">
+            <div class="header-toggle-text">
+              <div class="map-kicker">OPB · Oregon Field Guide</div>
+              <div class="map-title compact">Explore the archive by place</div>
+            </div>
+            <span class="header-toggle-arrow" id="header-toggle-arrow">▾</span>
+          </button>
+
+          <div class="map-header-body" id="map-header-body">
+            <p class="map-subtitle">
+              Browse Oregon Field Guide stories geographically across Oregon and the Pacific Northwest.
+            </p>
+            <div class="map-stats" id="map-stats">Loading stories…</div>
+          </div>
+        </div>
+
+        <div class="filter-shell">
+          <button class="filter-toggle" id="filter-toggle" type="button" aria-expanded="false">
+            <span>Search and filters</span>
+            <span class="filter-toggle-arrow" id="filter-toggle-arrow">▾</span>
+          </button>
+
+          <div class="filter-bar" id="filter-bar">
+            <div class="filter-label">Browse the archive</div>
+
+            <div class="search-wrap">
+              <input
+                type="text"
+                id="search-input"
+                class="search-input"
+                placeholder="Search stories, places, topics..."
+                aria-label="Search Oregon Field Guide stories"
+              />
+            </div>
+
+            <div class="year-filters">
+              <div class="year-filter-group">
+                <label for="year-from" class="year-filter-label">From year</label>
+                <select id="year-from" class="year-select">
+                  <option value="All">Earliest</option>
+                </select>
+              </div>
+
+              <div class="year-filter-group">
+                <label for="year-to" class="year-filter-label">To year</label>
+                <select id="year-to" class="year-select">
+                  <option value="All">Latest</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="watchable-toggle-wrap">
+              <label class="watchable-toggle-label">
+                <input type="checkbox" id="watchable-only" />
+                <span>Only show stories available to watch online</span>
+              </label>
+            </div>
+
+            <div class="watchable-toggle-wrap">
+              <label class="watchable-toggle-label">
+                <input type="checkbox" id="map-bounds-only" />
+                <span>Only show stories in current map view</span>
+              </label>
+            </div>
+
+            <div class="filter-buttons">
+              <button class="filter-btn active" data-category="All">All</button>
+              <button class="filter-btn" data-category="Wildlife">Wildlife</button>
+              <button class="filter-btn" data-category="Environment &amp; Conservation">Environment &amp; Conservation</button>
+              <button class="filter-btn" data-category="Recreation &amp; Outdoor Life">Recreation &amp; Outdoor Life</button>
+              <button class="filter-btn" data-category="Science &amp; Natural History">Science &amp; Natural History</button>
+              <button class="filter-btn" data-category="Communities &amp; Culture">Communities &amp; Culture</button>
+            </div>
+
+            <div class="filter-footer">
+              <button id="reset-view-btn" class="reset-view-btn">Reset filters + view</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="map"></div>
+    </div>
+
+    <aside class="list-pane" id="list-pane">
+      <button class="list-toggle" id="list-toggle" type="button" aria-expanded="true">
+        <div class="list-toggle-text">
+          <div class="list-kicker">Visible results</div>
+          <div class="list-title">Story list</div>
+          <div class="list-subtitle" id="list-summary">Loading stories…</div>
+        </div>
+        <span class="list-toggle-arrow" id="list-toggle-arrow">▾</span>
+      </button>
+
+      <div class="story-list-wrap" id="story-list-wrap">
+        <div class="story-list" id="story-list"></div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <script>
+    const CSV_FILE = 'ORFG_storiesMapped_20251223.csv';
+    const isMobileStart = window.innerWidth <= 700;
+
+    const worldBounds = [
+      [-85, -180],
+      [85, 180]
+    ];
+
+    const map = L.map('map', {
+      zoomControl: false,
+      minZoom: 2,
+      maxBounds: worldBounds,
+      maxBoundsViscosity: 1.0
+    }).setView(
+      isMobileStart ? [44.1, -120.7] : [43.9, -120.6],
+      isMobileStart ? 6.5 : 7
+    );
+
+    L.control.zoom({
+      position: 'bottomright'
+    }).addTo(map);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+    }).addTo(map);
+
+    const storyIcon = L.divIcon({
+      className: 'story-pin',
+      html: `
+        <svg width="26" height="36" viewBox="0 0 26 36" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M13 0C6 0 0 6 0 13c0 9 13 23 13 23s13-14 13-23C26 6 20 0 13 0z" fill="#2f5d50"/>
+          <circle cx="13" cy="13" r="5" fill="#ffffff"/>
+        </svg>
+      `,
+      iconSize: [26, 36],
+      iconAnchor: [13, 36],
+      popupAnchor: [0, -30]
+    });
+
+    let allStories = [];
+    let currentCategory = 'All';
+    let currentSearch = '';
+    let currentYearFrom = 'All';
+    let currentYearTo = 'All';
+    let currentWatchableOnly = false;
+    let currentMapBoundsOnly = false;
+    let clusterLayer = null;
+    let visibleStoriesCache = [];
+    let activeStoryId = null;
+
+    Papa.parse(CSV_FILE, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        allStories = results.data
+          .map((row, index) => normalizeStory(row, index))
+          .filter(story => story !== null);
+
+        renderStories();
+        setupFilterButtons();
+        setupSearch();
+        setupYearFilters();
+        setupWatchableToggle();
+        setupMapBoundsToggle();
+        setupFilterPanelToggle();
+        setupHeaderToggle();
+        setupListToggle();
+        setupResetView();
+        refreshMapSize();
+      },
+      error: function(err) {
+        console.error('CSV load failed:', err);
+        document.getElementById('map-stats').textContent = 'Could not load story data.';
+        document.getElementById('list-summary').textContent = 'Could not load story data.';
+      }
+    });
+
+    function normalizeStory(row, index) {
+      const lon = parseFloat(row.X);
+      const lat = parseFloat(row.Y);
+
+      if (isNaN(lat) || isNaN(lon)) return null;
+
+      const parsed = parseStoryName(row.Name || '');
+      const description = (row.Description || row.description || '').trim();
+      const category = assignCategory(parsed.title);
+
+      const season = row.Season ? parseInt(row.Season, 10) : null;
+      const episode = row.Episode ? parseInt(row.Episode, 10) : null;
+
+      const rawLink = getFirstFilledValue(row, ['Link', 'link', 'URL', 'Url', 'url']);
+      const link = normalizeLink(rawLink);
+
+      const broadcastInfo = parseBroadcastDate(row.BroadcastDate || '');
+
+      const metaParts = [];
+      if (season) metaParts.push(`Season ${season}`);
+      if (episode) metaParts.push(`Episode ${episode}`);
+      if (broadcastInfo.display) metaParts.push(broadcastInfo.display);
+
+      return {
+        id: `story-${index}`,
+        lat,
+        lon,
+        title: parsed.title,
+        meta: metaParts.length ? metaParts.join(' · ') : parsed.meta,
+        description,
+        category,
+        season,
+        episode,
+        link,
+        isWatchable: !!link,
+        broadcastDateRaw: row.BroadcastDate || '',
+        broadcastYear: broadcastInfo.year,
+        marker: null,
+        searchTokens: buildSearchTokens([
+          parsed.title,
+          description,
+          category,
+          season ? `season ${season}` : '',
+          episode ? `episode ${episode}` : '',
+          broadcastInfo.display || '',
+          broadcastInfo.year || '',
+          link ? 'video' : ''
+        ])
+      };
+    }
+
+    function getFirstFilledValue(row, keys) {
+      for (const key of keys) {
+        if (row[key] !== undefined && row[key] !== null) {
+          const value = String(row[key]).trim();
+          if (value !== '') return value;
+        }
+      }
+      return '';
+    }
+
+    function normalizeLink(value) {
+      const link = String(value || '').trim();
+      if (!link) return '';
+      if (link.startsWith('www.')) return 'https://' + link;
+      return link;
+    }
+
+    function parseStoryName(name) {
+      const raw = String(name).trim();
+      const match = raw.match(/^(\d{1,2})\.(\d{1,2})\s+(.+)$/);
+
+      if (match) {
+        const season = parseInt(match[1], 10);
+        const episode = parseInt(match[2], 10);
+        const title = match[3].trim();
+
+        return {
+          title,
+          meta: `Season ${season}, Episode ${episode}`
+        };
+      }
+
+      return {
+        title: raw || 'Untitled story',
+        meta: 'Oregon Field Guide'
+      };
+    }
+
+    function parseBroadcastDate(dateStr) {
+      const raw = String(dateStr).trim();
+      if (!raw) {
+        return { year: null, display: '' };
+      }
+
+      const match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+      if (!match) {
+        return { year: null, display: raw };
+      }
+
+      let month = parseInt(match[1], 10);
+      let day = parseInt(match[2], 10);
+      let year = parseInt(match[3], 10);
+
+      if (year < 100) {
+        year = year >= 30 ? 1900 + year : 2000 + year;
+      }
+
+      return {
+        year,
+        display: `${month}/${day}/${year}`
+      };
+    }
+
+    function assignCategory(title) {
+      const t = String(title).toLowerCase();
+
+      if (/(eagle|falcon|hawk|owl|wolf|wolves|bear|deer|elk|salmon|steelhead|trout|wildlife|refuge|sea lion|sea lions|seal|seals|peregrine|bird|birds|fish hatchery|osprey)/.test(t)) {
+        return 'Wildlife';
+      }
+
+      if (/(fishing|hiking|hike|hiked|climbing|climb|climbed|biking|bike|biked|ski|skiing|kayak|kayaking|rafting|paragliding|hunting|camping|trail|outdoor|paddling|boating|backpacking|mountain bike|climber)/.test(t)) {
+        return 'Recreation & Outdoor Life';
+      }
+
+      if (/(wetland|wetlands|marsh|restoration|cleanup|pollution|trash|habitat|stream|creek|river restoration|conservation|forest health|watershed|erosion|beach cleanup|new river|management|water quality)/.test(t)) {
+        return 'Environment & Conservation';
+      }
+
+      if (/(disease|research|study|geology|geologic|volcano|earthquake|archaeology|artifact|artifacts|looting|fossil|science|scientist|natural history|astronomy|lava|basalt)/.test(t)) {
+        return 'Science & Natural History';
+      }
+
+      if (/(mill|community|communities|town|industry|history|historic|people|culture|tribe|tribal|museum|logging|farmer|farming|ranch|ranching|harvest)/.test(t)) {
+        return 'Communities & Culture';
+      }
+
+      return 'Environment & Conservation';
+    }
+
+    function buildSearchTokens(fields) {
+      const rawText = fields.filter(Boolean).join(' ').toLowerCase();
+      const words = rawText.match(/[a-z0-9]+/g) || [];
+      const tokenSet = new Set();
+
+      words.forEach(word => {
+        const normalized = normalizeWord(word);
+        if (normalized) tokenSet.add(normalized);
+        tokenSet.add(word);
+      });
+
+      return Array.from(tokenSet);
+    }
+
+    function normalizeWord(word) {
+      let w = String(word).toLowerCase();
+      if (w.length <= 3) return w;
+
+      if (w.endsWith('ing') && w.length > 5) {
+        w = w.slice(0, -3);
+      } else if (w.endsWith('ed') && w.length > 4) {
+        w = w.slice(0, -2);
+      } else if (w.endsWith('es') && w.length > 4) {
+        w = w.slice(0, -2);
+      } else if (w.endsWith('s') && w.length > 4) {
+        w = w.slice(0, -1);
+      }
+
+      if (w.endsWith('ik')) w = w + 'e';
+      return w;
+    }
+
+    function tokenizeQuery(query) {
+      const words = String(query || '').toLowerCase().match(/[a-z0-9]+/g) || [];
+      return words.map(normalizeWord).filter(Boolean);
+    }
+
+    function storyMatchesQuery(story, query) {
+      if (!query.trim()) return true;
+      const queryTokens = tokenizeQuery(query);
+      if (!queryTokens.length) return true;
+
+      return queryTokens.every(qToken =>
+        story.searchTokens.some(sToken => sToken === qToken)
+      );
+    }
+
+    function getVisibleStories() {
+      const bounds = map.getBounds();
+
+      return allStories.filter(story => {
+        const matchesCategory =
+          currentCategory === 'All' || story.category === currentCategory;
+
+        const matchesSearch = storyMatchesQuery(story, currentSearch);
+
+        const matchesYearFrom =
+          currentYearFrom === 'All' ||
+          (story.broadcastYear !== null && story.broadcastYear >= parseInt(currentYearFrom, 10));
+
+        const matchesYearTo =
+          currentYearTo === 'All' ||
+          (story.broadcastYear !== null && story.broadcastYear <= parseInt(currentYearTo, 10));
+
+        const matchesWatchable =
+          !currentWatchableOnly || story.isWatchable;
+
+        const matchesMapBounds =
+          !currentMapBoundsOnly || bounds.contains([story.lat, story.lon]);
+
+        return matchesCategory &&
+          matchesSearch &&
+          matchesYearFrom &&
+          matchesYearTo &&
+          matchesWatchable &&
+          matchesMapBounds;
+      }).sort((a, b) => {
+        const ay = a.broadcastYear ?? 0;
+        const by = b.broadcastYear ?? 0;
+        if (ay !== by) return by - ay;
+        return a.title.localeCompare(b.title);
+      });
+    }
+
+    function renderStories() {
+      const visibleStories = getVisibleStories();
+      visibleStoriesCache = visibleStories;
+
+      if (clusterLayer) {
+        map.removeLayer(clusterLayer);
+      }
+
+      clusterLayer = L.markerClusterGroup({
+        showCoverageOnHover: false,
+        spiderfyOnMaxZoom: true,
+        maxClusterRadius: 42,
+        iconCreateFunction: function(cluster) {
+          const count = cluster.getChildCount();
+
+          let size = 36;
+          if (count >= 10) size = 42;
+          if (count >= 25) size = 50;
+          if (count >= 50) size = 58;
+          if (count >= 100) size = 68;
+          if (count >= 200) size = 78;
+
+          return L.divIcon({
+            html: `<div class="cluster-circle" style="width:${size}px;height:${size}px;line-height:${size}px;">${count}</div>`,
+            className: 'custom-cluster-icon',
+            iconSize: L.point(size, size)
+          });
+        }
+      });
+
+      const bounds = [];
+
+      visibleStories.forEach(story => {
+        const marker = L.marker([story.lat, story.lon], { icon: storyIcon });
+
+        marker.bindPopup(`
+          <div class="popup-kicker">${escapeHtml(story.category)}</div>
+          <div class="popup-title">${escapeHtml(story.title)}</div>
+          <div class="popup-meta">${escapeHtml(story.meta)}</div>
+          ${story.description ? `<div class="popup-desc">${escapeHtml(story.description)}</div>` : ''}
+          <div class="popup-actions">
+            ${story.link ? `<a class="watch-btn" href="${escapeAttribute(story.link)}" target="_blank" rel="noopener noreferrer">View story</a>` : ''}
+          </div>
+        `);
+
+        marker.on('popupopen', () => {
+          activeStoryId = story.id;
+          highlightActiveStoryCard();
+        });
+
+        story.marker = marker;
+        clusterLayer.addLayer(marker);
+        bounds.push([story.lat, story.lon]);
+      });
+
+      map.addLayer(clusterLayer);
+
+      if (bounds.length) {
+        if (
+          window.innerWidth <= 700 &&
+          currentCategory === 'All' &&
+          currentSearch === '' &&
+          currentYearFrom === 'All' &&
+          currentYearTo === 'All' &&
+          !currentWatchableOnly &&
+          !currentMapBoundsOnly
+        ) {
+          map.setView([44.1, -120.7], 6.5);
+        } else if (!currentMapBoundsOnly) {
+          map.fitBounds(bounds, { padding: [30, 30] });
+        }
+      }
+
+      updateStats(visibleStories.length);
+      renderStoryList(visibleStories);
+      refreshMapSize();
+    }
+
+    function renderStoryList(stories) {
+      const list = document.getElementById('story-list');
+      const summary = document.getElementById('list-summary');
+
+      summary.textContent = `${stories.length.toLocaleString()} visible stories`;
+
+      if (!stories.length) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <strong>No stories found.</strong>
+            Try broadening your search or adjusting the filters.
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = stories.map(story => `
+        <article class="story-card${activeStoryId === story.id ? ' active' : ''}" data-story-id="${story.id}">
+          <div class="story-card-kicker">${escapeHtml(story.category)}</div>
+          <h3 class="story-card-title">${escapeHtml(story.title)}</h3>
+          <div class="story-card-meta">${escapeHtml(story.meta)}</div>
+          ${story.description ? `<div class="story-card-desc">${escapeHtml(story.description)}</div>` : ''}
+          <div class="story-card-actions">
+            ${story.link ? `<a class="watch-btn" href="${escapeAttribute(story.link)}" target="_blank" rel="noopener noreferrer" data-stop-card-click="true">View story</a>` : ''}
+          </div>
+        </article>
+      `).join('');
+
+      list.querySelectorAll('.story-card').forEach(card => {
+        card.addEventListener('click', (event) => {
+          if (event.target.closest('[data-stop-card-click="true"]')) return;
+
+          const storyId = card.dataset.storyId;
+          const story = visibleStoriesCache.find(s => s.id === storyId);
+          if (!story || !story.marker) return;
+
+          activeStoryId = story.id;
+          map.setView([story.lat, story.lon], Math.max(map.getZoom(), 10), {
+            animate: true
+          });
+
+          clusterLayer.zoomToShowLayer(story.marker, () => {
+            story.marker.openPopup();
+          });
+
+          highlightActiveStoryCard();
+        });
+      });
+    }
+
+    function highlightActiveStoryCard() {
+      document.querySelectorAll('.story-card').forEach(card => {
+        card.classList.toggle('active', card.dataset.storyId === activeStoryId);
+      });
+    }
+
+    function setupFilterButtons() {
+      const buttons = document.querySelectorAll('.filter-btn');
+
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          buttons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentCategory = btn.dataset.category;
+          activeStoryId = null;
+          renderStories();
+        });
+      });
+    }
+
+    function setupSearch() {
+      const input = document.getElementById('search-input');
+
+      input.addEventListener('input', () => {
+        currentSearch = input.value.trim().toLowerCase();
+        activeStoryId = null;
+        renderStories();
+      });
+    }
+
+    function setupYearFilters() {
+      populateYearFilters();
+
+      const fromSelect = document.getElementById('year-from');
+      const toSelect = document.getElementById('year-to');
+
+      fromSelect.addEventListener('change', () => {
+        currentYearFrom = fromSelect.value;
+
+        if (
+          currentYearFrom !== 'All' &&
+          currentYearTo !== 'All' &&
+          parseInt(currentYearFrom, 10) > parseInt(currentYearTo, 10)
+        ) {
+          currentYearTo = currentYearFrom;
+          toSelect.value = currentYearTo;
+        }
+
+        activeStoryId = null;
+        renderStories();
+      });
+
+      toSelect.addEventListener('change', () => {
+        currentYearTo = toSelect.value;
+
+        if (
+          currentYearFrom !== 'All' &&
+          currentYearTo !== 'All' &&
+          parseInt(currentYearTo, 10) < parseInt(currentYearFrom, 10)
+        ) {
+          currentYearFrom = currentYearTo;
+          fromSelect.value = currentYearFrom;
+        }
+
+        activeStoryId = null;
+        renderStories();
+      });
+    }
+
+    function populateYearFilters() {
+      const fromSelect = document.getElementById('year-from');
+      const toSelect = document.getElementById('year-to');
+
+      const years = [...new Set(
+        allStories
+          .map(story => story.broadcastYear)
+          .filter(year => year !== null)
+      )].sort((a, b) => a - b);
+
+      years.forEach(year => {
+        const fromOption = document.createElement('option');
+        fromOption.value = String(year);
+        fromOption.textContent = String(year);
+        fromSelect.appendChild(fromOption);
+
+        const toOption = document.createElement('option');
+        toOption.value = String(year);
+        toOption.textContent = String(year);
+        toSelect.appendChild(toOption);
+      });
+    }
+
+    function setupWatchableToggle() {
+      const checkbox = document.getElementById('watchable-only');
+
+      checkbox.addEventListener('change', () => {
+        currentWatchableOnly = checkbox.checked;
+        activeStoryId = null;
+        renderStories();
+      });
+    }
+
+    function setupMapBoundsToggle() {
+      const checkbox = document.getElementById('map-bounds-only');
+
+      checkbox.addEventListener('change', () => {
+        currentMapBoundsOnly = checkbox.checked;
+        activeStoryId = null;
+        renderStories();
+      });
+
+      map.on('moveend', () => {
+        if (currentMapBoundsOnly) {
+          renderStories();
+        }
+      });
+    }
+
+    function setupFilterPanelToggle() {
+      const shell = document.querySelector('.filter-shell');
+      const toggle = document.getElementById('filter-toggle');
+      const panel = document.getElementById('filter-bar');
+      const arrow = document.getElementById('filter-toggle-arrow');
+
+      toggle.addEventListener('click', () => {
+        const isOpen = panel.classList.toggle('open');
+        shell.classList.toggle('open', isOpen);
+        toggle.setAttribute('aria-expanded', String(isOpen));
+        arrow.textContent = isOpen ? '▴' : '▾';
+        refreshMapSize();
+      });
+    }
+
+    function setupHeaderToggle() {
+      const header = document.getElementById('map-header');
+      const toggle = document.getElementById('header-toggle');
+      const arrow = document.getElementById('header-toggle-arrow');
+
+      if (window.innerWidth > 700) {
+        header.classList.add('open');
+        toggle.setAttribute('aria-expanded', 'true');
+        arrow.textContent = '▴';
+        return;
+      }
+
+      toggle.addEventListener('click', () => {
+        const isOpen = header.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', String(isOpen));
+        arrow.textContent = isOpen ? '▴' : '▾';
+        refreshMapSize();
+      });
+    }
+
+    function setupListToggle() {
+      const pane = document.getElementById('list-pane');
+      const toggle = document.getElementById('list-toggle');
+      const arrow = document.getElementById('list-toggle-arrow');
+
+      if (window.innerWidth > 700) {
+        pane.classList.add('open');
+        toggle.setAttribute('aria-expanded', 'true');
+        arrow.textContent = '▴';
+        return;
+      }
+
+      pane.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+      arrow.textContent = '▾';
+
+      toggle.addEventListener('click', () => {
+        const isOpen = pane.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', String(isOpen));
+        arrow.textContent = isOpen ? '▴' : '▾';
+      });
+    }
+
+    function setupResetView() {
+      const btn = document.getElementById('reset-view-btn');
+
+      btn.addEventListener('click', () => {
+        currentCategory = 'All';
+        currentSearch = '';
+        currentYearFrom = 'All';
+        currentYearTo = 'All';
+        currentWatchableOnly = false;
+        currentMapBoundsOnly = false;
+        activeStoryId = null;
+
+        document.getElementById('search-input').value = '';
+        document.getElementById('year-from').value = 'All';
+        document.getElementById('year-to').value = 'All';
+        document.getElementById('watchable-only').checked = false;
+        document.getElementById('map-bounds-only').checked = false;
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.category === 'All');
+        });
+
+        map.setView([44.1, -120.7], window.innerWidth <= 700 ? 6.5 : 7);
+        renderStories();
+      });
+    }
+
+    function refreshMapSize() {
+      window.setTimeout(() => {
+        map.invalidateSize();
+      }, 150);
+    }
+
+    function updateStats(count) {
+      const stats = document.getElementById('map-stats');
+
+      let parts = [`${count.toLocaleString()} mapped stories`];
+
+      if (currentCategory !== 'All') {
+        parts.push(currentCategory);
+      }
+
+      if (currentYearFrom !== 'All' || currentYearTo !== 'All') {
+        const fromText = currentYearFrom === 'All' ? 'earliest' : currentYearFrom;
+        const toText = currentYearTo === 'All' ? 'latest' : currentYearTo;
+        parts.push(`${fromText}–${toText}`);
+      }
+
+      if (currentWatchableOnly) {
+        parts.push('available to watch online now');
+      }
+
+      if (currentMapBoundsOnly) {
+        parts.push('current map view');
+      }
+
+      if (currentSearch !== '') {
+        parts.push(`search: "${currentSearch}"`);
+      }
+
+      stats.textContent = parts.join(' · ');
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttribute(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    window.addEventListener('resize', refreshMapSize);
+    window.addEventListener('orientationchange', refreshMapSize);
+  </script>
+</body>
+</html>
