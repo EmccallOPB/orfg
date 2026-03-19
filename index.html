@@ -654,18 +654,28 @@
 
       @media (max-width: 700px) {
         .map-pane {
-          height: 58vh;
-          min-height: 420px;
+          height: 55vh;
+          min-height: 380px;
         }
-      }
 
-      .list-pane {
-        width: 100%;
-        max-width: none;
-        min-width: 0;
-        border-left: none;
-        border-top: 1px solid var(--panel-border);
-      }
+        .list-pane {
+          width: 100%;
+          max-width: none;
+          min-width: 0;
+          border-left: none;
+          border-top: 1px solid var(--panel-border);
+          margin-top: -10px;
+          position: relative;
+          z-index: 20;
+          border-top-left-radius: 14px;
+          border-top-right-radius: 14px;
+          overflow: hidden;
+          background: #fafafa;
+        }
+
+        .list-toggle {
+          padding: 12px 12px 8px;
+        }
 
       .map-ui {
         top: 10px;
@@ -728,20 +738,19 @@
         gap: 8px;
       }
 
-      .list-toggle {
-        padding: 14px 14px 10px;
-      }
-
       .list-title {
         font-size: 22px;
       }
 
       .story-list-wrap {
-        display: none;
+        display: block;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.25s ease;
       }
 
       .list-pane.open .story-list-wrap {
-        display: block;
+        max-height: 45vh;
       }
 
       .story-list {
