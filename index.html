@@ -82,6 +82,7 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      gap: 12px;
     }
 
     .list-toggle-text {
@@ -95,6 +96,7 @@
       color: var(--muted);
       margin-bottom: 6px;
       font-weight: 700;
+      line-height: 1.2;
     }
 
     .list-title {
@@ -106,15 +108,26 @@
 
     .list-subtitle {
       font-size: 13px;
-      line-height: 1.45;
+      line-height: 1.35;
       color: var(--muted);
       margin: 0;
     }
 
     .list-toggle-arrow {
+      width: 12px;
+      height: 12px;
+      display: inline-block;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg);
+      transition: transform 0.2s ease;
+      margin-top: 8px;
       color: var(--muted);
-      font-size: 14px;
-      padding-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .list-pane.open .list-toggle-arrow {
+      transform: rotate(-135deg);
     }
 
     .story-list-wrap {
@@ -268,17 +281,12 @@
       justify-content: space-between;
       align-items: flex-start;
       text-align: left;
+      gap: 12px;
       cursor: pointer;
     }
 
     .header-toggle-text {
       min-width: 0;
-    }
-
-    .header-toggle-arrow {
-      color: var(--muted);
-      font-size: 14px;
-      padding-top: 2px;
     }
 
     .map-kicker {
@@ -301,6 +309,23 @@
 
     .map-title.compact {
       margin: 0;
+    }
+
+    .header-toggle-arrow {
+      width: 12px;
+      height: 12px;
+      display: inline-block;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg);
+      transition: transform 0.2s ease;
+      color: var(--muted);
+      margin-top: 8px;
+      flex-shrink: 0;
+    }
+
+    .map-header.open .header-toggle-arrow {
+      transform: rotate(-135deg);
     }
 
     .map-header-body {
@@ -343,6 +368,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 12px;
     }
 
     .filter-shell.open .filter-toggle {
@@ -354,9 +380,26 @@
       background: #ffffff;
     }
 
+    .filter-toggle-label {
+      min-width: 0;
+    }
+
     .filter-toggle-arrow {
+      width: 12px;
+      height: 12px;
+      display: inline-block;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg);
+      transition: transform 0.2s ease;
       color: var(--muted);
-      font-size: 14px;
+      flex-shrink: 0;
+      margin-right: 2px;
+    }
+
+    .filter-shell.open .filter-toggle-arrow {
+      transform: rotate(-135deg);
+      color: var(--accent);
     }
 
     .filter-bar {
@@ -613,36 +656,33 @@
         pointer-events: none;
       }
 
+      .map-header-body,
+      .story-list-wrap {
+        display: block !important;
+        max-height: none !important;
+      }
+
       .header-toggle-arrow,
       .list-toggle-arrow {
         display: none;
       }
 
-      .map-header-body,
-      .story-list-wrap {
-        display: block !important;
+      .filter-toggle:hover .filter-toggle-arrow {
+        color: var(--accent);
       }
     }
 
     @media (max-width: 980px) {
       .app {
-        flex-direction: column;
-        height: auto;
-        min-height: 100vh;
+        display: block;
+        height: 100svh;
+        min-height: 100svh;
+        overflow: hidden;
       }
 
       .map-pane {
-        height: 60vh;
-        height: 60svh;
-        min-height: 420px;
-      }
-
-      .list-pane {
-        width: 100%;
-        max-width: none;
-        min-width: 0;
-        border-left: none;
-        border-top: 1px solid var(--panel-border);
+        height: 100svh;
+        min-height: 100svh;
       }
     }
 
@@ -738,14 +778,14 @@
         border-top-right-radius: 16px;
         background: #fafafa;
         box-shadow: 0 -8px 24px rgba(0,0,0,0.16);
-        overflow: clip;
+        overflow: visible;
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
       }
 
       .list-toggle {
         padding: 14px 12px 10px;
         background: #ffffff;
-        min-height: 78px;
+        min-height: 84px;
         box-sizing: border-box;
       }
 
@@ -775,7 +815,7 @@
       }
 
       .list-pane.open .story-list-wrap {
-        max-height: 38svh;
+        max-height: 40svh;
       }
 
       .story-list {
@@ -798,7 +838,7 @@
               <div class="map-kicker">OPB · Oregon Field Guide</div>
               <div class="map-title compact">Explore the archive by place</div>
             </div>
-            <span class="header-toggle-arrow" id="header-toggle-arrow">▾</span>
+            <span class="header-toggle-arrow" id="header-toggle-arrow"></span>
           </button>
 
           <div class="map-header-body" id="map-header-body">
@@ -809,10 +849,10 @@
           </div>
         </div>
 
-        <div class="filter-shell">
+        <div class="filter-shell" id="filter-shell">
           <button class="filter-toggle" id="filter-toggle" type="button" aria-expanded="false">
-            <span>Search and filters</span>
-            <span class="filter-toggle-arrow" id="filter-toggle-arrow">▾</span>
+            <span class="filter-toggle-label">Search and filters</span>
+            <span class="filter-toggle-arrow" id="filter-toggle-arrow"></span>
           </button>
 
           <div class="filter-bar" id="filter-bar">
@@ -884,7 +924,7 @@
           <div class="list-title">Story list</div>
           <div class="list-subtitle" id="list-summary">Loading stories…</div>
         </div>
-        <span class="list-toggle-arrow" id="list-toggle-arrow">▾</span>
+        <span class="list-toggle-arrow"></span>
       </button>
 
       <div class="story-list-wrap" id="story-list-wrap">
@@ -1447,16 +1487,14 @@
     }
 
     function setupFilterPanelToggle() {
-      const shell = document.querySelector('.filter-shell');
+      const shell = document.getElementById('filter-shell');
       const toggle = document.getElementById('filter-toggle');
       const panel = document.getElementById('filter-bar');
-      const arrow = document.getElementById('filter-toggle-arrow');
 
       toggle.addEventListener('click', () => {
         const isOpen = panel.classList.toggle('open');
         shell.classList.toggle('open', isOpen);
         toggle.setAttribute('aria-expanded', String(isOpen));
-        arrow.textContent = isOpen ? '▴' : '▾';
         refreshMapSize();
       });
     }
@@ -1464,19 +1502,16 @@
     function setupHeaderToggle() {
       const header = document.getElementById('map-header');
       const toggle = document.getElementById('header-toggle');
-      const arrow = document.getElementById('header-toggle-arrow');
 
       if (window.innerWidth > 700) {
         header.classList.add('open');
         toggle.setAttribute('aria-expanded', 'true');
-        arrow.textContent = '▴';
         return;
       }
 
       toggle.addEventListener('click', () => {
         const isOpen = header.classList.toggle('open');
         toggle.setAttribute('aria-expanded', String(isOpen));
-        arrow.textContent = isOpen ? '▴' : '▾';
         refreshMapSize();
       });
     }
@@ -1484,23 +1519,19 @@
     function setupListToggle() {
       const pane = document.getElementById('list-pane');
       const toggle = document.getElementById('list-toggle');
-      const arrow = document.getElementById('list-toggle-arrow');
 
       if (window.innerWidth > 700) {
         pane.classList.add('open');
         toggle.setAttribute('aria-expanded', 'true');
-        arrow.textContent = '▴';
         return;
       }
 
       pane.classList.add('open');
       toggle.setAttribute('aria-expanded', 'true');
-      arrow.textContent = '▴';
 
       toggle.addEventListener('click', () => {
         const isOpen = pane.classList.toggle('open');
         toggle.setAttribute('aria-expanded', String(isOpen));
-        arrow.textContent = isOpen ? '▴' : '▾';
       });
     }
 
