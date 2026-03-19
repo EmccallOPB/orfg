@@ -852,7 +852,7 @@
         <div class="filter-shell" id="filter-shell">
           <button class="filter-toggle" id="filter-toggle" type="button" aria-expanded="false">
             <span class="filter-toggle-label">Search and filters</span>
-            <span class="filter-toggle-arrow" id="filter-toggle-arrow"></span>
+            <span class="filter-toggle-arrow" id="filter-toggle-arrow-ui"></span>
           </button>
 
           <div class="filter-bar" id="filter-bar">
@@ -863,7 +863,7 @@
                 type="text"
                 id="search-input"
                 class="search-input"
-                placeholder="Search stories, places, topics..."
+                placeholder="Search stories, places, topics, producers..."
                 aria-label="Search Oregon Field Guide stories"
               />
             </div>
@@ -938,7 +938,7 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <script>
-    const CSV_FILE = 'ORFG_storiesMapped_20251223.csv';
+    const CSV_FILE = 'ORFG_storiesMapped.csv';
     const isMobileStart = window.innerWidth <= 700;
 
     const worldBounds = [
@@ -987,6 +987,7 @@
     let clusterLayer = null;
     let visibleStoriesCache = [];
     let activeStoryId = null;
+    let activeMarkerRef = null;
 
     Papa.parse(CSV_FILE, {
       download: true,
@@ -997,6 +998,7 @@
           .map((row, index) => normalizeStory(row, index))
           .filter(story => story !== null);
 
+        populateYearFilters();
         renderStories();
         setupFilterButtons();
         setupSearch();
@@ -1007,6 +1009,10 @@
         setupHeaderToggle();
         setupListToggle();
         setupResetView();
+
+        map.on('zoomend', syncActiveSelectionWithClusters);
+        map.on('moveend', syncActiveSelectionWithClusters);
+
         refreshMapSize();
       },
       error: function(err) {
@@ -1023,7 +1029,16 @@
       if (isNaN(lat) || isNaN(lon)) return null;
 
       const parsed = parseStoryName(row.Name || '');
-      const description = (row.Description || row.description || '').trim();
+
+      const description = (
+        row.Description_Clean ||
+        row.description_clean ||
+        row.Description ||
+        row.description ||
+        ''
+      ).trim();
+
+      const producer = (row.Producer || row.producer || '').trim();
       const category = assignCategory(parsed.title);
 
       const season = row.Season ? parseInt(row.Season, 10) : null;
@@ -1038,6 +1053,7 @@
       if (season) metaParts.push(`Season ${season}`);
       if (episode) metaParts.push(`Episode ${episode}`);
       if (broadcastInfo.display) metaParts.push(broadcastInfo.display);
+      if (producer) metaParts.push(producer);
 
       return {
         id: `story-${index}`,
@@ -1046,6 +1062,7 @@
         title: parsed.title,
         meta: metaParts.length ? metaParts.join(' · ') : parsed.meta,
         description,
+        producer,
         category,
         season,
         episode,
@@ -1053,10 +1070,12 @@
         isWatchable: !!link,
         broadcastDateRaw: row.BroadcastDate || '',
         broadcastYear: broadcastInfo.year,
+        broadcastTimestamp: broadcastInfo.timestamp,
         marker: null,
         searchTokens: buildSearchTokens([
           parsed.title,
           description,
+          producer,
           category,
           season ? `season ${season}` : '',
           episode ? `episode ${episode}` : '',
@@ -1108,12 +1127,12 @@
     function parseBroadcastDate(dateStr) {
       const raw = String(dateStr).trim();
       if (!raw) {
-        return { year: null, display: '' };
+        return { year: null, display: '', timestamp: null };
       }
 
       const match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
       if (!match) {
-        return { year: null, display: raw };
+        return { year: null, display: raw, timestamp: null };
       }
 
       let month = parseInt(match[1], 10);
@@ -1124,9 +1143,12 @@
         year = year >= 30 ? 1900 + year : 2000 + year;
       }
 
+      const timestamp = new Date(year, month - 1, day).getTime();
+
       return {
         year,
-        display: `${month}/${day}/${year}`
+        display: `${month}/${day}/${year}`,
+        timestamp
       };
     }
 
@@ -1233,9 +1255,9 @@
           matchesWatchable &&
           matchesMapBounds;
       }).sort((a, b) => {
-        const ay = a.broadcastYear ?? 0;
-        const by = b.broadcastYear ?? 0;
-        if (ay !== by) return by - ay;
+        const at = a.broadcastTimestamp ?? 0;
+        const bt = b.broadcastTimestamp ?? 0;
+        if (at !== bt) return bt - at;
         return a.title.localeCompare(b.title);
       });
     }
@@ -1287,7 +1309,16 @@
 
         marker.on('popupopen', () => {
           activeStoryId = story.id;
+          activeMarkerRef = marker;
           highlightActiveStoryCard();
+        });
+
+        marker.on('popupclose', () => {
+          if (activeMarkerRef === marker) {
+            activeMarkerRef = null;
+            activeStoryId = null;
+            highlightActiveStoryCard();
+          }
         });
 
         story.marker = marker;
@@ -1302,12 +1333,11 @@
           window.innerWidth <= 700 &&
           currentCategory === 'All' &&
           currentSearch === '' &&
-          currentYearFrom === 'All' &&
-          currentYearTo === 'All' &&
           !currentWatchableOnly &&
-          !currentMapBoundsOnly
+          !currentMapBoundsOnly &&
+          currentYearFrom === currentYearTo
         ) {
-          map.setView([44.1, -120.7], 6.5);
+          map.fitBounds(bounds, { padding: [30, 30] });
         } else if (!currentMapBoundsOnly) {
           map.fitBounds(bounds, { padding: [30, 30] });
         }
@@ -1355,6 +1385,8 @@
           if (!story || !story.marker) return;
 
           activeStoryId = story.id;
+          activeMarkerRef = story.marker;
+
           map.setView([story.lat, story.lon], Math.max(map.getZoom(), 10), {
             animate: true
           });
@@ -1374,6 +1406,19 @@
       });
     }
 
+    function syncActiveSelectionWithClusters() {
+      if (!activeMarkerRef || !clusterLayer) return;
+
+      const individuallyVisible = map.hasLayer(activeMarkerRef);
+
+      if (!individuallyVisible) {
+        map.closePopup();
+        activeMarkerRef = null;
+        activeStoryId = null;
+        highlightActiveStoryCard();
+      }
+    }
+
     function setupFilterButtons() {
       const buttons = document.querySelectorAll('.filter-btn');
 
@@ -1383,6 +1428,7 @@
           btn.classList.add('active');
           currentCategory = btn.dataset.category;
           activeStoryId = null;
+          activeMarkerRef = null;
           renderStories();
         });
       });
@@ -1394,45 +1440,7 @@
       input.addEventListener('input', () => {
         currentSearch = input.value.trim().toLowerCase();
         activeStoryId = null;
-        renderStories();
-      });
-    }
-
-    function setupYearFilters() {
-      populateYearFilters();
-
-      const fromSelect = document.getElementById('year-from');
-      const toSelect = document.getElementById('year-to');
-
-      fromSelect.addEventListener('change', () => {
-        currentYearFrom = fromSelect.value;
-
-        if (
-          currentYearFrom !== 'All' &&
-          currentYearTo !== 'All' &&
-          parseInt(currentYearFrom, 10) > parseInt(currentYearTo, 10)
-        ) {
-          currentYearTo = currentYearFrom;
-          toSelect.value = currentYearTo;
-        }
-
-        activeStoryId = null;
-        renderStories();
-      });
-
-      toSelect.addEventListener('change', () => {
-        currentYearTo = toSelect.value;
-
-        if (
-          currentYearFrom !== 'All' &&
-          currentYearTo !== 'All' &&
-          parseInt(currentYearTo, 10) < parseInt(currentYearFrom, 10)
-        ) {
-          currentYearFrom = currentYearTo;
-          fromSelect.value = currentYearFrom;
-        }
-
-        activeStoryId = null;
+        activeMarkerRef = null;
         renderStories();
       });
     }
@@ -1458,6 +1466,53 @@
         toOption.textContent = String(year);
         toSelect.appendChild(toOption);
       });
+
+      if (years.length) {
+        const mostRecentYear = String(years[years.length - 1]);
+        currentYearFrom = mostRecentYear;
+        currentYearTo = mostRecentYear;
+        fromSelect.value = mostRecentYear;
+        toSelect.value = mostRecentYear;
+      }
+    }
+
+    function setupYearFilters() {
+      const fromSelect = document.getElementById('year-from');
+      const toSelect = document.getElementById('year-to');
+
+      fromSelect.addEventListener('change', () => {
+        currentYearFrom = fromSelect.value;
+
+        if (
+          currentYearFrom !== 'All' &&
+          currentYearTo !== 'All' &&
+          parseInt(currentYearFrom, 10) > parseInt(currentYearTo, 10)
+        ) {
+          currentYearTo = currentYearFrom;
+          toSelect.value = currentYearTo;
+        }
+
+        activeStoryId = null;
+        activeMarkerRef = null;
+        renderStories();
+      });
+
+      toSelect.addEventListener('change', () => {
+        currentYearTo = toSelect.value;
+
+        if (
+          currentYearFrom !== 'All' &&
+          currentYearTo !== 'All' &&
+          parseInt(currentYearTo, 10) < parseInt(currentYearFrom, 10)
+        ) {
+          currentYearFrom = currentYearTo;
+          fromSelect.value = currentYearFrom;
+        }
+
+        activeStoryId = null;
+        activeMarkerRef = null;
+        renderStories();
+      });
     }
 
     function setupWatchableToggle() {
@@ -1466,6 +1521,7 @@
       checkbox.addEventListener('change', () => {
         currentWatchableOnly = checkbox.checked;
         activeStoryId = null;
+        activeMarkerRef = null;
         renderStories();
       });
     }
@@ -1476,11 +1532,14 @@
       checkbox.addEventListener('change', () => {
         currentMapBoundsOnly = checkbox.checked;
         activeStoryId = null;
+        activeMarkerRef = null;
         renderStories();
       });
 
       map.on('moveend', () => {
         if (currentMapBoundsOnly) {
+          activeStoryId = null;
+          activeMarkerRef = null;
           renderStories();
         }
       });
@@ -1541,15 +1600,12 @@
       btn.addEventListener('click', () => {
         currentCategory = 'All';
         currentSearch = '';
-        currentYearFrom = 'All';
-        currentYearTo = 'All';
         currentWatchableOnly = false;
         currentMapBoundsOnly = false;
         activeStoryId = null;
+        activeMarkerRef = null;
 
         document.getElementById('search-input').value = '';
-        document.getElementById('year-from').value = 'All';
-        document.getElementById('year-to').value = 'All';
         document.getElementById('watchable-only').checked = false;
         document.getElementById('map-bounds-only').checked = false;
 
@@ -1557,7 +1613,25 @@
           btn.classList.toggle('active', btn.dataset.category === 'All');
         });
 
-        map.setView([44.1, -120.7], window.innerWidth <= 700 ? 6.5 : 7);
+        const years = [...new Set(
+          allStories
+            .map(story => story.broadcastYear)
+            .filter(year => year !== null)
+        )].sort((a, b) => a - b);
+
+        if (years.length) {
+          const mostRecentYear = String(years[years.length - 1]);
+          currentYearFrom = mostRecentYear;
+          currentYearTo = mostRecentYear;
+          document.getElementById('year-from').value = mostRecentYear;
+          document.getElementById('year-to').value = mostRecentYear;
+        } else {
+          currentYearFrom = 'All';
+          currentYearTo = 'All';
+          document.getElementById('year-from').value = 'All';
+          document.getElementById('year-to').value = 'All';
+        }
+
         renderStories();
       });
     }
