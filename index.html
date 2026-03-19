@@ -130,6 +130,9 @@
       transform: rotate(-135deg);
     }
 
+
+    
+
     .story-list-wrap {
       flex: 1;
       min-height: 0;
@@ -649,26 +652,71 @@
       flex-wrap: wrap;
     }
 
+    .list-reopen-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 1100;
+      appearance: none;
+      border: 1px solid var(--panel-border);
+      background: var(--panel);
+      color: var(--muted);
+      border-radius: 999px;
+      width: 42px;
+      height: 42px;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      display: none;
+    }
+
+    .list-reopen-btn:hover {
+      background: #ffffff;
+      color: var(--accent);
+    }
+
     @media (min-width: 701px) {
-      .header-toggle,
-      .list-toggle {
+      .header-toggle {
         cursor: default;
         pointer-events: none;
       }
 
-      .map-header-body,
-      .story-list-wrap {
+      .map-header-body {
         display: block !important;
         max-height: none !important;
       }
 
-      .header-toggle-arrow,
-      .list-toggle-arrow {
+      .header-toggle-arrow {
         display: none;
       }
 
       .filter-toggle:hover .filter-toggle-arrow {
         color: var(--accent);
+      }
+
+      .list-pane {
+        transition: width 0.26s ease, min-width 0.26s ease, max-width 0.26s ease, opacity 0.2s ease;
+      }
+
+      .list-pane.collapsed {
+        width: 0;
+        min-width: 0;
+        max-width: 0;
+        opacity: 0;
+        border-left: none;
+        overflow: hidden;
+      }
+
+      .list-pane.collapsed .list-toggle,
+      .list-pane.collapsed .story-list-wrap {
+        display: none !important;
+      }
+
+      .list-reopen-btn.visible {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
     }
 
@@ -915,6 +963,9 @@
       </div>
 
       <div id="map"></div>
+      <button id="list-reopen-btn" class="list-reopen-btn" type="button" aria-label="Open story list">
+        ☰
+      </button>
     </div>
 
     <aside class="list-pane" id="list-pane">
@@ -1575,13 +1626,42 @@
       });
     }
 
+    function updateListToggleLabel() {
+      const pane = document.getElementById('list-pane');
+      const title = pane.querySelector('.list-title');
+
+      if (window.innerWidth > 700 && pane.classList.contains('collapsed')) {
+        title.textContent = 'Stories';
+      } else {
+        title.textContent = 'Story list';
+      }
+    }
+
     function setupListToggle() {
       const pane = document.getElementById('list-pane');
       const toggle = document.getElementById('list-toggle');
+      const reopenBtn = document.getElementById('list-reopen-btn');
 
       if (window.innerWidth > 700) {
         pane.classList.add('open');
+        pane.classList.remove('collapsed');
+        reopenBtn.classList.remove('visible');
         toggle.setAttribute('aria-expanded', 'true');
+
+        toggle.addEventListener('click', () => {
+          pane.classList.add('collapsed');
+          toggle.setAttribute('aria-expanded', 'false');
+          reopenBtn.classList.add('visible');
+          refreshMapSize(280);
+        });
+
+        reopenBtn.addEventListener('click', () => {
+          pane.classList.remove('collapsed');
+          toggle.setAttribute('aria-expanded', 'true');
+          reopenBtn.classList.remove('visible');
+          refreshMapSize(280);
+        });
+
         return;
       }
 
@@ -1636,10 +1716,13 @@
       });
     }
 
-    function refreshMapSize() {
-      window.setTimeout(() => {
-        map.invalidateSize();
-      }, 150);
+    let mapResizeTimer = null;
+
+    function refreshMapSize(delay = 180) {
+      window.clearTimeout(mapResizeTimer);
+      mapResizeTimer = window.setTimeout(() => {
+        map.invalidateSize({ pan: false, animate: false });
+      }, delay);
     }
 
     function updateStats(count) {
