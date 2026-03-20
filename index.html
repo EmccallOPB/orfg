@@ -26,6 +26,11 @@
       --accent-soft: #eef4f1;
       --white: #ffffff;
       --shadow: 0 8px 24px rgba(0,0,0,0.12);
+
+      --radius-panel: 14px;
+      --radius-control: 10px;
+      --radius-pill: 999px;
+      --radius-sheet: 18px;
     }
 
     html, body {
@@ -130,9 +135,6 @@
       transform: rotate(-135deg);
     }
 
-
-    
-
     .story-list-wrap {
       flex: 1;
       min-height: 0;
@@ -149,7 +151,7 @@
     .story-card {
       background: #ffffff;
       border: 1px solid var(--panel-border);
-      border-radius: 10px;
+      border-radius: var(--radius-panel);
       padding: 12px 12px 11px;
       margin-bottom: 10px;
       cursor: pointer;
@@ -214,7 +216,7 @@
       background: #ffffff;
       color: var(--accent);
       border: 1px solid rgba(47,93,80,0.28);
-      border-radius: 999px;
+      border-radius: var(--radius-pill);
       padding: 8px 12px;
       font-size: 12px;
       font-weight: 700;
@@ -242,7 +244,7 @@
       line-height: 1.6;
       background: #ffffff;
       border: 1px solid var(--panel-border);
-      border-radius: 10px;
+      border-radius: var(--radius-panel);
     }
 
     .empty-state strong {
@@ -267,10 +269,43 @@
     .map-header {
       background: var(--panel);
       border: 1px solid var(--panel-border);
-      border-radius: 10px;
+      border-radius: var(--radius-panel);
       padding: 16px 18px 14px;
       box-shadow: var(--shadow);
       pointer-events: auto;
+    }
+
+    .map-title-collapsed {
+      display: none;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 16px;
+      line-height: 1.1;
+      color: var(--text);
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .map-header.closed {
+      padding: 10px 14px;
+      width: fit-content;
+      max-width: 260px;
+    }
+
+    .map-header.closed .map-header-body {
+      display: none;
+    }
+
+    .map-header.closed .map-kicker,
+    .map-header.closed .map-title {
+      display: none;
+    }
+
+    .map-header.closed .map-title-collapsed {
+      display: block;
+    }
+
+    .map-header.closed .header-toggle {
+      align-items: center;
     }
 
     .header-toggle {
@@ -303,7 +338,7 @@
 
     .map-title {
       font-family: Georgia, "Times New Roman", serif;
-      font-size: 30px;
+      font-size: 26px;
       line-height: 1.05;
       margin: 0 0 8px;
       color: var(--text);
@@ -356,12 +391,16 @@
       filter: drop-shadow(0 8px 24px rgba(0,0,0,0.12));
     }
 
+    .filter-shell.collapsed {
+      display: none;
+    }
+
     .filter-toggle {
       width: 100%;
       appearance: none;
       border: 1px solid var(--panel-border);
       background: var(--panel);
-      border-radius: 10px;
+      border-radius: var(--radius-panel);
       padding: 11px 13px;
       text-align: left;
       font-size: 13px;
@@ -375,7 +414,7 @@
     }
 
     .filter-shell.open .filter-toggle {
-      border-radius: 10px 10px 0 0;
+      border-radius: var(--radius-panel) var(--radius-panel) 0 0;
       box-shadow: none;
     }
 
@@ -410,7 +449,7 @@
       background: var(--panel);
       border: 1px solid var(--panel-border);
       border-top: none;
-      border-radius: 0 0 10px 10px;
+      border-radius: 0 0 var(--radius-panel) var(--radius-panel);
       padding: 10px;
       box-shadow: none;
       display: none;
@@ -418,6 +457,56 @@
 
     .filter-bar.open {
       display: block;
+    }
+
+    .filter-reopen-btn {
+      display: none;
+      position: static;
+      z-index: 1005;
+      appearance: none;
+      border: 1px solid var(--panel-border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: var(--radius-pill);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      pointer-events: auto;
+      margin-top: 10px;
+    }
+
+    .filter-reopen-btn.visible {
+      display: inline-flex;
+    }
+
+    .filter-reopen-btn:hover {
+      background: #ffffff;
+    }
+
+    .filter-reopen-icon {
+      width: 12px;
+      height: 12px;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      position: relative;
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+
+    .filter-reopen-icon::after {
+      content: "";
+      position: absolute;
+      width: 7px;
+      height: 2px;
+      background: currentColor;
+      right: -5px;
+      bottom: -2px;
+      transform: rotate(45deg);
+      border-radius: 2px;
     }
 
     .filter-label {
@@ -439,7 +528,7 @@
       border: 1px solid var(--panel-border);
       background: #ffffff;
       color: var(--text);
-      border-radius: 8px;
+      border-radius: var(--radius-control);
       padding: 11px 13px;
       font-size: 14px;
       outline: none;
@@ -481,7 +570,7 @@
       border: 1px solid var(--panel-border);
       background: #ffffff;
       color: var(--text);
-      border-radius: 8px;
+      border-radius: var(--radius-control);
       padding: 10px 12px;
       font-size: 14px;
       outline: none;
@@ -491,7 +580,7 @@
       margin-bottom: 10px;
       padding: 10px 12px;
       border: 1px solid var(--panel-border);
-      border-radius: 8px;
+      border-radius: var(--radius-control);
       background: #ffffff;
     }
 
@@ -521,7 +610,7 @@
       border: 1px solid var(--panel-border);
       background: #ffffff;
       color: var(--text);
-      border-radius: 999px;
+      border-radius: var(--radius-pill);
       padding: 8px 12px;
       font-size: 13px;
       font-weight: 700;
@@ -551,7 +640,7 @@
       border: 1px solid var(--panel-border);
       background: #ffffff;
       color: var(--text);
-      border-radius: 999px;
+      border-radius: var(--radius-pill);
       padding: 8px 12px;
       font-size: 12px;
       font-weight: 700;
@@ -599,7 +688,7 @@
     }
 
     .leaflet-popup-content-wrapper {
-      border-radius: 10px;
+      border-radius: var(--radius-panel);
       padding: 2px;
       background: rgba(255,255,255,0.98);
       box-shadow: 0 14px 28px rgba(0,0,0,0.18);
@@ -661,7 +750,7 @@
       border: 1px solid var(--panel-border);
       background: var(--panel);
       color: var(--muted);
-      border-radius: 999px;
+      border-radius: var(--radius-pill);
       width: 42px;
       height: 42px;
       font-size: 20px;
@@ -678,17 +767,20 @@
 
     @media (min-width: 701px) {
       .header-toggle {
-        cursor: default;
-        pointer-events: none;
+        cursor: pointer;
+        pointer-events: auto;
       }
 
       .map-header-body {
-        display: block !important;
-        max-height: none !important;
+        display: none;
+      }
+
+      .map-header.open .map-header-body {
+        display: block;
       }
 
       .header-toggle-arrow {
-        display: none;
+        display: inline-block;
       }
 
       .filter-toggle:hover .filter-toggle-arrow {
@@ -735,6 +827,15 @@
     }
 
     @media (max-width: 700px) {
+      .map-title-collapsed {
+        font-size: 14px;
+      }
+
+      .map-header.closed {
+        padding: 9px 12px;
+        max-width: 220px;
+      }
+
       .app {
         display: block;
         height: 100svh;
@@ -756,14 +857,28 @@
         z-index: 1200;
       }
 
-      .map-header,
-      .filter-toggle,
-      .filter-bar {
-        border-radius: 8px;
+      .map-header {
+        border-radius: var(--radius-panel);
+        padding: 12px 14px;
       }
 
-      .map-header {
-        padding: 12px 14px;
+      .filter-toggle {
+        border-radius: var(--radius-panel);
+        padding: 10px 12px;
+        font-size: 12px;
+      }
+
+      .filter-bar {
+        border-radius: var(--radius-panel);
+        padding: 10px;
+      }
+
+      .filter-shell.open .filter-toggle {
+        border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+      }
+
+      .filter-shell.open .filter-bar {
+        border-radius: 0 0 var(--radius-panel) var(--radius-panel);
       }
 
       .map-title {
@@ -791,13 +906,12 @@
         display: block;
       }
 
-      .filter-toggle {
-        padding: 10px 12px;
-        font-size: 12px;
+      .filter-shell.collapsed {
+        display: block;
       }
 
-      .filter-bar {
-        padding: 10px;
+      .filter-reopen-btn {
+        display: none !important;
       }
 
       .filter-btn {
@@ -822,8 +936,8 @@
         z-index: 1300;
         border-left: none;
         border-top: 1px solid var(--panel-border);
-        border-top-left-radius: 16px;
-        border-top-right-radius: 16px;
+        border-top-left-radius: var(--radius-sheet);
+        border-top-right-radius: var(--radius-sheet);
         background: #fafafa;
         box-shadow: 0 -8px 24px rgba(0,0,0,0.16);
         overflow: visible;
@@ -835,6 +949,8 @@
         background: #ffffff;
         min-height: 84px;
         box-sizing: border-box;
+        border-top-left-radius: var(--radius-sheet);
+        border-top-right-radius: var(--radius-sheet);
       }
 
       .list-kicker {
@@ -872,6 +988,10 @@
         padding: 8px 10px 14px;
         box-sizing: border-box;
       }
+
+      .list-reopen-btn {
+        display: none !important;
+      }
     }
   </style>
 </head>
@@ -881,10 +1001,11 @@
     <div class="map-pane">
       <div class="map-ui">
         <div class="map-header" id="map-header">
-          <button class="header-toggle" id="header-toggle" type="button" aria-expanded="false">
+          <button class="header-toggle" id="header-toggle" type="button" aria-expanded="true">
             <div class="header-toggle-text">
-              <div class="map-kicker">OPB · Oregon Field Guide</div>
-              <div class="map-title compact">Explore the archive by place</div>
+              <div class="map-kicker" id="map-kicker">OPB · Oregon Field Guide</div>
+              <div class="map-title compact" id="map-title">Explore the archive by place</div>
+              <div class="map-title-collapsed" id="map-title-collapsed">ORFG Archive Map</div>
             </div>
             <span class="header-toggle-arrow" id="header-toggle-arrow"></span>
           </button>
@@ -898,12 +1019,12 @@
         </div>
 
         <div class="filter-shell" id="filter-shell">
-          <button class="filter-toggle" id="filter-toggle" type="button" aria-expanded="false">
-            <span class="filter-toggle-label">Search and filters</span>
+          <button class="filter-toggle" id="filter-toggle" type="button" aria-expanded="true">
+            <span class="filter-toggle-label">Search / Filter</span>
             <span class="filter-toggle-arrow" id="filter-toggle-arrow-ui"></span>
           </button>
 
-          <div class="filter-bar" id="filter-bar">
+          <div class="filter-bar open" id="filter-bar">
             <div class="filter-label">Browse the archive</div>
 
             <div class="search-wrap">
@@ -960,9 +1081,15 @@
             </div>
           </div>
         </div>
+
+        <button id="filter-reopen-btn" class="filter-reopen-btn" type="button" aria-label="Open search and filters">
+          <span class="filter-reopen-icon" aria-hidden="true"></span>
+          <span class="filter-reopen-label">Search / Filter</span>
+        </button>
       </div>
 
       <div id="map"></div>
+
       <button id="list-reopen-btn" class="list-reopen-btn" type="button" aria-label="Open story list">
         ☰
       </button>
@@ -989,7 +1116,7 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <script>
-    const CSV_FILE = 'ORFG_storiesMapped.csv';
+    const CSV_FILE = 'ORFG_storiesMapped_20251223.csv';
     const isMobileStart = window.innerWidth <= 700;
 
     const worldBounds = [
@@ -1039,6 +1166,7 @@
     let visibleStoriesCache = [];
     let activeStoryId = null;
     let activeMarkerRef = null;
+    let mapResizeTimer = null;
 
     Papa.parse(CSV_FILE, {
       download: true,
@@ -1379,19 +1507,8 @@
 
       map.addLayer(clusterLayer);
 
-      if (bounds.length) {
-        if (
-          window.innerWidth <= 700 &&
-          currentCategory === 'All' &&
-          currentSearch === '' &&
-          !currentWatchableOnly &&
-          !currentMapBoundsOnly &&
-          currentYearFrom === currentYearTo
-        ) {
-          map.fitBounds(bounds, { padding: [30, 30] });
-        } else if (!currentMapBoundsOnly) {
-          map.fitBounds(bounds, { padding: [30, 30] });
-        }
+      if (bounds.length && !currentMapBoundsOnly) {
+        map.fitBounds(bounds, { padding: [30, 30] });
       }
 
       updateStats(visibleStories.length);
@@ -1600,6 +1717,40 @@
       const shell = document.getElementById('filter-shell');
       const toggle = document.getElementById('filter-toggle');
       const panel = document.getElementById('filter-bar');
+      const reopenBtn = document.getElementById('filter-reopen-btn');
+
+      if (window.innerWidth > 700) {
+        panel.classList.add('open');
+        shell.classList.add('open');
+        shell.classList.remove('collapsed');
+        toggle.setAttribute('aria-expanded', 'true');
+        reopenBtn.classList.remove('visible');
+
+        toggle.addEventListener('click', () => {
+          shell.classList.add('collapsed');
+          panel.classList.remove('open');
+          shell.classList.remove('open');
+          toggle.setAttribute('aria-expanded', 'false');
+          reopenBtn.classList.add('visible');
+          refreshMapSize(220);
+        });
+
+        reopenBtn.addEventListener('click', () => {
+          shell.classList.remove('collapsed');
+          panel.classList.add('open');
+          shell.classList.add('open');
+          toggle.setAttribute('aria-expanded', 'true');
+          reopenBtn.classList.remove('visible');
+          refreshMapSize(220);
+        });
+
+        return;
+      }
+
+      panel.classList.remove('open');
+      shell.classList.remove('open');
+      shell.classList.remove('collapsed');
+      toggle.setAttribute('aria-expanded', 'false');
 
       toggle.addEventListener('click', () => {
         const isOpen = panel.classList.toggle('open');
@@ -1613,28 +1764,16 @@
       const header = document.getElementById('map-header');
       const toggle = document.getElementById('header-toggle');
 
-      if (window.innerWidth > 700) {
-        header.classList.add('open');
-        toggle.setAttribute('aria-expanded', 'true');
-        return;
-      }
+      header.classList.add('open');
+      header.classList.remove('closed');
+      toggle.setAttribute('aria-expanded', 'true');
 
       toggle.addEventListener('click', () => {
         const isOpen = header.classList.toggle('open');
+        header.classList.toggle('closed', !isOpen);
         toggle.setAttribute('aria-expanded', String(isOpen));
         refreshMapSize();
       });
-    }
-
-    function updateListToggleLabel() {
-      const pane = document.getElementById('list-pane');
-      const title = pane.querySelector('.list-title');
-
-      if (window.innerWidth > 700 && pane.classList.contains('collapsed')) {
-        title.textContent = 'Stories';
-      } else {
-        title.textContent = 'Story list';
-      }
     }
 
     function setupListToggle() {
@@ -1657,6 +1796,7 @@
 
         reopenBtn.addEventListener('click', () => {
           pane.classList.remove('collapsed');
+          pane.classList.add('open');
           toggle.setAttribute('aria-expanded', 'true');
           reopenBtn.classList.remove('visible');
           refreshMapSize(280);
@@ -1665,8 +1805,10 @@
         return;
       }
 
-      pane.classList.add('open');
-      toggle.setAttribute('aria-expanded', 'true');
+      pane.classList.remove('collapsed');
+      pane.classList.remove('open');
+      reopenBtn.classList.remove('visible');
+      toggle.setAttribute('aria-expanded', 'false');
 
       toggle.addEventListener('click', () => {
         const isOpen = pane.classList.toggle('open');
@@ -1715,8 +1857,6 @@
         renderStories();
       });
     }
-
-    let mapResizeTimer = null;
 
     function refreshMapSize(delay = 180) {
       window.clearTimeout(mapResizeTimer);
