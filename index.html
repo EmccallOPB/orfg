@@ -278,7 +278,7 @@
     .map-title-collapsed {
       display: none;
       font-family: Georgia, "Times New Roman", serif;
-      font-size: 16px;
+      font-size: 15px;
       line-height: 1.1;
       color: var(--text);
       font-weight: 700;
@@ -288,7 +288,7 @@
     .map-header.closed {
       padding: 10px 14px;
       width: fit-content;
-      max-width: 260px;
+      max-width: 240px;
     }
 
     .map-header.closed .map-header-body {
@@ -317,7 +317,7 @@
       margin: 0;
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: center;
       text-align: left;
       gap: 12px;
       cursor: pointer;
@@ -339,10 +339,11 @@
     .map-title {
       font-family: Georgia, "Times New Roman", serif;
       font-size: 26px;
-      line-height: 1.05;
+      line-height: 1.08;
       margin: 0 0 8px;
       color: var(--text);
       font-weight: 700;
+      max-width: 90%;
     }
 
     .map-title.compact {
@@ -358,8 +359,8 @@
       transform: rotate(45deg);
       transition: transform 0.2s ease;
       color: var(--muted);
-      margin-top: 8px;
       flex-shrink: 0;
+      opacity: 0.7;
     }
 
     .map-header.open .header-toggle-arrow {
@@ -1004,8 +1005,8 @@
           <button class="header-toggle" id="header-toggle" type="button" aria-expanded="true">
             <div class="header-toggle-text">
               <div class="map-kicker" id="map-kicker">OPB · Oregon Field Guide</div>
-              <div class="map-title compact" id="map-title">Explore the archive by place</div>
-              <div class="map-title-collapsed" id="map-title-collapsed">ORFG Archive Map</div>
+              <div class="map-title compact" id="map-title">Explore the archive</div>
+              <div class="map-title-collapsed" id="map-title-collapsed">Explore archive</div>
             </div>
             <span class="header-toggle-arrow" id="header-toggle-arrow"></span>
           </button>
@@ -1116,7 +1117,7 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <script>
-    const CSV_FILE = 'ORFG_storiesMapped.csv';
+    const CSV_FILE = 'ORFG_storiesMapped-OriginalBroadcast.csv';
     const isMobileStart = window.innerWidth <= 700;
 
     const worldBounds = [
@@ -1377,6 +1378,10 @@
 
       if (w.endsWith('ing') && w.length > 5) {
         w = w.slice(0, -3);
+      } else if (w.endsWith('ers') && w.length > 5) {
+        w = w.slice(0, -3);
+      } else if (w.endsWith('er') && w.length > 4) {
+        w = w.slice(0, -2);
       } else if (w.endsWith('ed') && w.length > 4) {
         w = w.slice(0, -2);
       } else if (w.endsWith('es') && w.length > 4) {
@@ -1385,7 +1390,8 @@
         w = w.slice(0, -1);
       }
 
-      if (w.endsWith('ik')) w = w + 'e';
+      if (w.endsWith('iv')) w = w + 'e';
+
       return w;
     }
 
@@ -1396,12 +1402,51 @@
 
     function storyMatchesQuery(story, query) {
       if (!query.trim()) return true;
-      const queryTokens = tokenizeQuery(query);
-      if (!queryTokens.length) return true;
 
-      return queryTokens.every(qToken =>
-        story.searchTokens.some(sToken => sToken === qToken)
-      );
+      const groups = query.split(',')
+        .map(group => group.trim())
+        .filter(Boolean);
+
+      return groups.some(group => {
+        const tokens = tokenizeQuery(group);
+        if (!tokens.length) return false;
+
+        return tokens.every(qToken =>
+          story.searchTokens.some(sToken => tokensLooselyMatch(qToken, sToken))
+        );
+      });
+    }
+
+    function tokensLooselyMatch(queryToken, storyToken) {
+      if (queryToken === storyToken) return true;
+
+      // Allow close root matching for words like dive/diving/diver/divers
+      if (queryToken.length >= 4 && storyToken.length >= 4) {
+        const qRoot = looseRoot(queryToken);
+        const sRoot = looseRoot(storyToken);
+
+        if (qRoot === sRoot) return true;
+        if (qRoot.startsWith(sRoot) || sRoot.startsWith(qRoot)) return true;
+      }
+
+      return false;
+    }
+
+    function looseRoot(word) {
+      let w = String(word).toLowerCase();
+
+      // Remove common endings
+      if (w.endsWith('ing') && w.length > 5) w = w.slice(0, -3);
+      else if (w.endsWith('ers') && w.length > 5) w = w.slice(0, -3);
+      else if (w.endsWith('er') && w.length > 4) w = w.slice(0, -2);
+      else if (w.endsWith('ed') && w.length > 4) w = w.slice(0, -2);
+      else if (w.endsWith('es') && w.length > 4) w = w.slice(0, -2);
+      else if (w.endsWith('s') && w.length > 4) w = w.slice(0, -1);
+
+      // Normalize common final-e cases like div -> dive
+      if (w.endsWith('iv')) w = w + 'e';
+
+      return w;
     }
 
     function getVisibleStories() {
